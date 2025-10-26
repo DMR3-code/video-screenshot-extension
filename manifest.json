@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Video Screenshot Capture",
+  "version": "1.0",
+  "description": "Capture screenshots from any video with customizable keyboard shortcuts",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads"
+  ],
+  "commands": {
+    "capture-screenshot": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+V",
+        "mac": "Command+Shift+V"
+      },
+      "description": "Capture video screenshot"
+    }
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Video Screenshot Capture"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
