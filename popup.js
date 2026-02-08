@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Capture button
   captureButton.addEventListener('click', async () => {
+    status.className = 'status'; // Reset classes
     status.textContent = 'Capturing...';
     captureButton.disabled = true;
 
@@ -56,22 +57,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (response && response.success) {
-          status.textContent = 'Screenshot saved!';
+          status.textContent = 'Screenshot downloaded!';
+          status.classList.add('success');
           setTimeout(() => {
+            status.className = 'status';
             status.textContent = 'Ready to capture';
-          }, 2000);
+          }, 3000);
         } else {
           status.textContent = 'No video found on page';
+          status.classList.add('error');
           setTimeout(() => {
+            status.className = 'status';
             status.textContent = 'Ready to capture';
-          }, 2000);
+          }, 3000);
         }
       }
     } catch (error) {
-      status.textContent = 'Error capturing screenshot';
+      status.textContent = 'Error: Refresh page and try again';
+      status.classList.add('error');
       setTimeout(() => {
+        status.className = 'status';
         status.textContent = 'Ready to capture';
-      }, 2000);
+      }, 3000);
     }
 
     captureButton.disabled = false;

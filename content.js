@@ -17,7 +17,7 @@ class VideoScreenshotCapture {
     // Periodic scan for dynamically loaded videos
     setInterval(() => {
       this.scanForVideos();
-    }, 2000);
+    }, 5000);
   }
 
   async loadSettings() {
@@ -109,9 +109,21 @@ class VideoScreenshotCapture {
     // Create container if it doesn't exist
     let container = video.parentElement;
     if (!container.classList.contains('video-screenshot-container')) {
-      // Only wrap if the parent isn't already a container
+      // Get video styles to replicate on wrapper
+      const style = window.getComputedStyle(video);
+
       const wrapper = document.createElement('div');
       wrapper.className = 'video-screenshot-container';
+
+      // Copy essential layout styles
+      wrapper.style.display = style.display === 'inline' ? 'inline-block' : style.display;
+      wrapper.style.marginTop = style.marginTop;
+      wrapper.style.marginBottom = style.marginBottom;
+      wrapper.style.marginLeft = style.marginLeft;
+      wrapper.style.marginRight = style.marginRight;
+      wrapper.style.float = style.float;
+      wrapper.style.clear = style.clear;
+
       video.parentNode.insertBefore(wrapper, video);
       wrapper.appendChild(video);
       container = wrapper;
@@ -249,7 +261,11 @@ class VideoScreenshotCapture {
 
       console.log('Video screenshot captured');
     } catch (error) {
-      console.error('Failed to capture video screenshot:', error);
+      if (error.name === 'SecurityError') {
+        alert('Cannot capture screenshot: This video is protected by the website\'s security settings (CORS).');
+      } else {
+        console.error('Failed to capture video screenshot:', error);
+      }
     }
   }
 
