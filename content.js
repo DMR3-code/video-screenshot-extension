@@ -2,6 +2,7 @@ class VideoScreenshotCapture {
   constructor() {
     this.videos = new Set();
     this.settings = { showIcons: true };
+    this._scanInterval = null;
     this.init();
   }
 
@@ -14,8 +15,8 @@ class VideoScreenshotCapture {
     // Initial scan for videos
     this.scanForVideos();
 
-    // Periodic scan for dynamically loaded videos
-    setInterval(() => {
+    // Periodic scan for dynamically loaded videos (stored so it can be cleared)
+    this._scanInterval = setInterval(() => {
       this.scanForVideos();
     }, 5000);
   }
@@ -103,8 +104,18 @@ class VideoScreenshotCapture {
   }
 
   addVideoControls(video) {
-    // Skip if video is too small or not visible
+    // If metadata isn't loaded yet, wait for it before checking dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      video.addEventListener('loadedmetadata', () => this.addVideoControls(video), { once: true });
+      return;
+    }
+
+    // Skip videos that are too small (likely tracking pixels / ads)
     if (video.videoWidth < 100 || video.videoHeight < 100) return;
+
+    // Prevent adding duplicate buttons
+    if (video.dataset.screenshotAdded === 'true') return;
+    video.dataset.screenshotAdded = 'true';
 
     // Create container if it doesn't exist
     let container = video.parentElement;
@@ -178,9 +189,11 @@ class VideoScreenshotCapture {
       if (message.action === 'captureVideo') {
         const captured = this.captureAnyVideo();
         sendResponse({ success: captured });
+        return true; // Keep message channel open for async response
       } else if (message.action === 'toggleIcons') {
         this.settings.showIcons = message.showIcons;
         this.updateIconVisibility();
+        sendResponse({ success: true });
       }
     });
   }
@@ -199,22 +212,28 @@ class VideoScreenshotCapture {
   captureAnyVideo() {
     const videos = Array.from(document.querySelectorAll('video'));
 
-    // Find the largest playing video
+    // Prefer the largest currently-playing video; fall back to largest loaded video
     let targetVideo = null;
-    let maxArea = 0;
+    let maxPlayingArea = 0;
+    let maxLoadedArea = 0;
+    let fallbackVideo = null;
 
     for (const video of videos) {
       if (video.videoWidth > 0 && video.videoHeight > 0) {
         const area = video.videoWidth * video.videoHeight;
-        if (area > maxArea) {
-          maxArea = area;
+        if (!video.paused && !video.ended && area > maxPlayingArea) {
+          maxPlayingArea = area;
           targetVideo = video;
+        } else if (area > maxLoadedArea) {
+          maxLoadedArea = area;
+          fallbackVideo = video;
         }
       }
     }
 
-    if (targetVideo) {
-      this.captureVideoScreenshot(targetVideo);
+    const chosen = targetVideo || fallbackVideo;
+    if (chosen) {
+      this.captureVideoScreenshot(chosen);
       return true;
     }
 
@@ -255,11 +274,9 @@ class VideoScreenshotCapture {
         a.click();
         document.body.removeChild(a);
 
-        // Clean up
+        // Clean up object URL after download starts
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }, 'image/png');
-
-      console.log('Video screenshot captured');
     } catch (error) {
       if (error.name === 'SecurityError') {
         alert('Cannot capture screenshot: This video is protected by the website\'s security settings (CORS).');
